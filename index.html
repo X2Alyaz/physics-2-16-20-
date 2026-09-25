@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>การจำลอง แรงเสียดทาน พื้นราบ</title>
+<title>การจำลอง แรงเสียดทาน พื้นราบ / พื้นเอียง</title>
 <style>
   :root{
     --paper:#f3efe4;
@@ -11,6 +11,8 @@
     --line:#c9c0aa;
     --accent:#2e6b4f;
     --accent2:#b5502e;
+    --accent3:#3b6ea5;
+    --accent4:#8c3fae;
     --panel:#fffdf7;
     --grid:#e2d9c4;
     padding-top:env(safe-area-inset-top,0px);
@@ -18,11 +20,11 @@
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --panel:#232722; --grid:#2a2f29;
+      --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --accent3:#7fb3e0; --accent4:#d9a3f0; --panel:#232722; --grid:#2a2f29;
     }
   }
   :root[data-theme="dark"]{
-    --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --panel:#232722; --grid:#2a2f29;
+    --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --accent3:#7fb3e0; --accent4:#d9a3f0; --panel:#232722; --grid:#2a2f29;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
@@ -54,17 +56,26 @@
   }
   .panel h2{font-size:1.05rem;margin:0 0 12px;font-weight:700;}
 
+  .modes{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--ink);border-radius:4px;overflow:hidden;width:max-content;max-width:100%;}
+  .modes button{
+    border:none;border-radius:0;background:transparent;color:var(--ink);
+    padding:10px 22px;font-size:1rem;
+  }
+  .modes button[aria-pressed="true"]{background:var(--ink);color:var(--paper);}
+
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;}
   @media (max-width:520px){.grid{grid-template-columns:1fr;}}
   label{display:block;font-size:.88rem;margin-bottom:4px;opacity:.85;}
   .row{display:flex;align-items:center;gap:10px;}
   input[type=range]{flex:1;accent-color:var(--accent);}
-  input[type=number]{
-    width:72px;background:var(--paper);border:1px solid var(--line);
-    border-radius:3px;padding:4px 6px;color:var(--ink);font-size:.9rem;
-  }
+  .hidden{display:none !important;}
 
   canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:var(--panel);}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px;font-size:.85rem;}
+  .legend .item{display:flex;align-items:center;gap:6px;}
+  .legend .swatch{width:22px;height:3px;border-radius:2px;flex:none;}
+  .legend .swatch.dashed{background:none;border-top:2px dashed var(--ink);opacity:.55;height:0;}
 
   .readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
   @media (max-width:520px){.readout{grid-template-columns:1fr 1fr;}}
@@ -92,40 +103,71 @@
   table{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:10px;}
   th,td{border:1px solid var(--line);padding:6px 8px;text-align:center;}
   th{background:var(--paper);font-weight:700;}
-  td.note{text-align:left;opacity:.75;}
   .tblwrap{overflow-x:auto;}
   .empty{opacity:.55;font-size:.88rem;padding:8px 0;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>การจำลอง: แรงเสียดทาน บนพื้นราบ</h1>
-  <div class="sub">ปรับค่าตัวแปร กดวิ่งจำลอง แล้วบันทึกค่าความเร่งที่ได้ลงตาราง</div>
+  <h1>การจำลอง: แรงเสียดทาน</h1>
+  <div class="sub">เลือกพื้นราบหรือพื้นเอียง ปรับค่าตัวแปร กดวิ่งจำลอง แล้วบันทึกค่าความเร่งที่ได้ลงตาราง</div>
+
+  <div class="modes" role="group" aria-label="เลือกประเภทพื้น">
+    <button id="modeFlat" aria-pressed="true">พื้นราบ</button>
+    <button id="modeIncl" aria-pressed="false">พื้นเอียง</button>
+  </div>
 
   <div class="panel">
     <h2>ค่าตัวแปร</h2>
-    <div class="grid">
+
+    <!-- flat controls -->
+    <div class="grid" id="flatInputs">
       <div>
-        <label>มวล m (kg): <span id="mVal">2.0</span></label>
-        <div class="row"><input type="range" id="m" min="0.5" max="10" step="0.1" value="2"></div>
+        <label>มวล m (kg): <span id="f_mVal">2.0</span></label>
+        <div class="row"><input type="range" id="f_m" min="0.5" max="10" step="0.1" value="2"></div>
       </div>
       <div>
-        <label>แรงภายนอก F (N): <span id="FVal">10.0</span></label>
-        <div class="row"><input type="range" id="F" min="0" max="50" step="0.5" value="10"></div>
+        <label>แรงภายนอก F (N): <span id="f_FVal">10.0</span></label>
+        <div class="row"><input type="range" id="f_F" min="0" max="50" step="0.5" value="10"></div>
       </div>
       <div>
-        <label>สปส. ความเสียดทานสถิต μs: <span id="muSVal">0.40</span></label>
-        <div class="row"><input type="range" id="muS" min="0" max="1" step="0.01" value="0.4"></div>
+        <label>สปส. ความเสียดทานสถิต μs: <span id="f_muSVal">0.40</span></label>
+        <div class="row"><input type="range" id="f_muS" min="0" max="1" step="0.01" value="0.4"></div>
       </div>
       <div>
-        <label>สปส. ความเสียดทานจลน์ μk: <span id="muKVal">0.20</span></label>
-        <div class="row"><input type="range" id="muK" min="0" max="1" step="0.01" value="0.2"></div>
+        <label>สปส. ความเสียดทานจลน์ μk: <span id="f_muKVal">0.20</span></label>
+        <div class="row"><input type="range" id="f_muK" min="0" max="1" step="0.01" value="0.2"></div>
       </div>
       <div>
-        <label>g (m/s²): <span id="gVal">10.0</span></label>
-        <div class="row"><input type="range" id="g" min="1" max="20" step="0.1" value="10"></div>
+        <label>g (m/s²): <span id="f_gVal">10.0</span></label>
+        <div class="row"><input type="range" id="f_g" min="1" max="20" step="0.1" value="10"></div>
       </div>
     </div>
+
+    <!-- incline controls -->
+    <div class="grid hidden" id="inclInputs">
+      <div>
+        <label>มวล m (kg): <span id="i_mVal">2.0</span></label>
+        <div class="row"><input type="range" id="i_m" min="0.5" max="10" step="0.1" value="2"></div>
+      </div>
+      <div>
+        <label>มุมเอียง θ (องศา): <span id="i_thVal">30.0</span></label>
+        <div class="row"><input type="range" id="i_th" min="0" max="80" step="1" value="30"></div>
+      </div>
+      <div>
+        <label>สปส. ความเสียดทานสถิต μs: <span id="i_muSVal">0.40</span></label>
+        <div class="row"><input type="range" id="i_muS" min="0" max="1" step="0.01" value="0.4"></div>
+      </div>
+      <div>
+        <label>สปส. ความเสียดทานจลน์ μk: <span id="i_muKVal">0.20</span></label>
+        <div class="row"><input type="range" id="i_muK" min="0" max="1" step="0.01" value="0.2"></div>
+      </div>
+      <div>
+        <label>g (m/s²): <span id="i_gVal">10.0</span></label>
+        <div class="row"><input type="range" id="i_g" min="1" max="20" step="0.1" value="10"></div>
+      </div>
+    </div>
+
     <div class="btns">
       <button id="runBtn">▶ วิ่งจำลอง</button>
       <button class="secondary" id="resetBtn">รีเซ็ตตำแหน่ง</button>
@@ -136,11 +178,28 @@
     <h2>ภาพจำลอง</h2>
     <canvas id="scene" width="720" height="220"></canvas>
 
-    <div class="readout">
-      <div class="stat"><div class="k">แรงเสียดทานสูงสุด (สถิต) f_s,max</div><div class="v" id="fsMax">—</div></div>
-      <div class="stat"><div class="k">แรงเสียดทานจลน์ f_k</div><div class="v" id="fk">—</div></div>
-      <div class="stat"><div class="k">แรงลัพธ์ ΣF</div><div class="v" id="netF">—</div></div>
-      <div class="stat" id="accBox"><div class="k">ความเร่ง a (m/s²)</div><div class="v" id="acc">—</div></div>
+    <div class="legend hidden" id="legend">
+      <div class="item"><span class="swatch dashed"></span> mg (น้ำหนักรวม)</div>
+      <div class="item"><span class="swatch" style="background:var(--accent2)"></span> mg sinθ (ฉุดลงตามพื้นเอียง)</div>
+      <div class="item"><span class="swatch" style="background:var(--accent3)"></span> mg cosθ (กดตั้งฉากเข้าพื้น)</div>
+      <div class="item"><span class="swatch" style="background:var(--accent4)"></span> N (แรงปฏิกิริยาตั้งฉาก)</div>
+      <div class="item"><span class="swatch" style="background:var(--accent)"></span> f (แรงเสียดทาน)</div>
+    </div>
+
+    <div class="readout" id="readoutFlat">
+      <div class="stat"><div class="k">แรงเสียดทานสูงสุด (สถิต) f_s,max</div><div class="v" id="f_fsMax">—</div></div>
+      <div class="stat"><div class="k">แรงเสียดทานจลน์ f_k</div><div class="v" id="f_fk">—</div></div>
+      <div class="stat"><div class="k">แรงลัพธ์ ΣF</div><div class="v" id="f_netF">—</div></div>
+      <div class="stat" id="f_accBox"><div class="k">ความเร่ง a (m/s²)</div><div class="v" id="f_acc">—</div></div>
+    </div>
+
+    <div class="readout hidden" id="readoutIncl">
+      <div class="stat"><div class="k">แรงตามพื้นเอียง mg sinθ</div><div class="v" id="i_mgsin">—</div></div>
+      <div class="stat"><div class="k">แรงเสียดทานสูงสุด (สถิต) f_s,max</div><div class="v" id="i_fsMax">—</div></div>
+      <div class="stat"><div class="k">แรงเสียดทานจลน์ f_k</div><div class="v" id="i_fk">—</div></div>
+      <div class="stat"><div class="k">แรงตั้งฉาก N = mg cosθ</div><div class="v" id="i_Nval">—</div></div>
+      <div class="stat"><div class="k">แรงลัพธ์ตามพื้นเอียง</div><div class="v" id="i_netF">—</div></div>
+      <div class="stat" id="i_accBox"><div class="k">ความเร่ง a (m/s²)</div><div class="v" id="i_acc">—</div></div>
     </div>
 
     <div class="verdict" id="verdict">ปรับค่าแล้วกด "วิ่งจำลอง" เพื่อดูผล</div>
@@ -151,7 +210,7 @@
     <div class="tblwrap">
       <table id="log">
         <thead>
-          <tr><th>#</th><th>m (kg)</th><th>F (N)</th><th>μs</th><th>μk</th><th>g</th><th>สถานะ</th><th>a (m/s²)</th></tr>
+          <tr><th>#</th><th>พื้น</th><th>m (kg)</th><th id="colVar">F (N)</th><th>μs</th><th>μk</th><th>g</th><th>สถานะ</th><th>a (m/s²)</th></tr>
         </thead>
         <tbody id="logBody"></tbody>
       </table>
@@ -165,185 +224,298 @@
 
 <script>
 (function(){
-  const ids = ['m','F','muS','muK','g'];
-  const valSpans = {m:'mVal',F:'FVal',muS:'muSVal',muK:'muKVal',g:'gVal'};
-  const decimals = {m:1,F:1,muS:2,muK:2,g:1};
+  // ---------- mode & controls ----------
+  let mode = 'flat';
+  const CTRL = {
+    flat: { ids:['f_m','f_F','f_muS','f_muK','f_g'], vals:{f_m:'f_mVal',f_F:'f_FVal',f_muS:'f_muSVal',f_muK:'f_muKVal',f_g:'f_gVal'}, dec:{f_m:1,f_F:1,f_muS:2,f_muK:2,f_g:1} },
+    incl: { ids:['i_m','i_th','i_muS','i_muK','i_g'], vals:{i_m:'i_mVal',i_th:'i_thVal',i_muS:'i_muSVal',i_muK:'i_muKVal',i_g:'i_gVal'}, dec:{i_m:1,i_th:1,i_muS:2,i_muK:2,i_g:1} }
+  };
   const inputs = {};
-  ids.forEach(id=>{
+  Object.keys(CTRL).forEach(k=>CTRL[k].ids.forEach(id=>{
     inputs[id] = document.getElementById(id);
     inputs[id].addEventListener('input', updateLabels);
-  });
-
+  }));
   function updateLabels(){
-    ids.forEach(id=>{
-      document.getElementById(valSpans[id]).textContent = parseFloat(inputs[id].value).toFixed(decimals[id]);
-    });
+    Object.keys(CTRL).forEach(k=>CTRL[k].ids.forEach(id=>{
+      document.getElementById(CTRL[k].vals[id]).textContent = parseFloat(inputs[id].value).toFixed(CTRL[k].dec[id]);
+    }));
   }
   updateLabels();
 
+  // ---------- canvas ----------
   const canvas = document.getElementById('scene');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const groundY = H - 50;
-  let boxX = 60;
-  const boxW = 60, boxH = 44;
-
+  let pos = 0; // flat: px moved; incline: px travelled down slope
   function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
-  function drawScene(fVec, ffVec, moving){
-    ctx.clearRect(0,0,W,H);
-    // ground
-    ctx.strokeStyle = css('--ink');
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(20, groundY);
-    ctx.lineTo(W-20, groundY);
-    ctx.stroke();
-    // hatching
-    ctx.strokeStyle = css('--line');
-    ctx.lineWidth = 1;
-    for(let x=20;x<W-20;x+=14){
-      ctx.beginPath();
-      ctx.moveTo(x, groundY);
-      ctx.lineTo(x-8, groundY+14);
-      ctx.stroke();
-    }
-    // box
-    const bx = Math.min(Math.max(boxX, 30), W-30-boxW);
-    ctx.fillStyle = css('--panel');
-    ctx.strokeStyle = css('--ink');
-    ctx.lineWidth = 2;
-    ctx.fillRect(bx, groundY-boxH, boxW, boxH);
-    ctx.strokeRect(bx, groundY-boxH, boxW, boxH);
-    ctx.fillStyle = css('--ink');
-    ctx.font = '13px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('m', bx+boxW/2, groundY-boxH/2+5);
-
-    const cy = groundY - boxH/2;
-    // F arrow (accent, pointing right)
-    if(fVec>0){
-      drawArrow(bx+boxW, cy, bx+boxW+fVec, cy, css('--accent'));
-      ctx.fillStyle = css('--accent');
-      ctx.textAlign='left';
-      ctx.fillText('F', bx+boxW+fVec+6, cy+4);
-    }
-    // friction arrow (accent2, pointing left, opposing)
-    if(ffVec>0){
-      drawArrow(bx, cy+16, bx-ffVec, cy+16, css('--accent2'));
-      ctx.fillStyle = css('--accent2');
-      ctx.textAlign='right';
-      ctx.fillText('f', bx-ffVec-6, cy+16+4);
-    }
-  }
-
   function drawArrow(x1,y1,x2,y2,color){
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.stroke();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
     const angle = Math.atan2(y2-y1, x2-x1);
     ctx.beginPath();
     ctx.moveTo(x2,y2);
     ctx.lineTo(x2 - 8*Math.cos(angle-0.4), y2 - 8*Math.sin(angle-0.4));
     ctx.lineTo(x2 - 8*Math.cos(angle+0.4), y2 - 8*Math.sin(angle+0.4));
-    ctx.closePath();
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
   }
 
+  function labelBox(text, x, y, align, color){
+    ctx.font = 'bold 13px sans-serif';
+    const w = ctx.measureText(text).width, pad = 4;
+    let rectX;
+    if(align==='left') rectX = x - pad;
+    else if(align==='right') rectX = x - w - pad;
+    else rectX = x - w/2 - pad;
+    ctx.fillStyle = css('--panel');
+    ctx.globalAlpha = 0.88;
+    ctx.fillRect(rectX, y-12, w+pad*2, 17);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = color; ctx.textAlign = align;
+    ctx.fillText(text, x, y+2);
+  }
+
+  // ---- flat scene ----
+  function drawFlat(fVec, ffVec){
+    const W = canvas.width, H = canvas.height;
+    const groundY = H - 50, boxW = 60, boxH = 44;
+    let boxX = 60 + pos;
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(20, groundY); ctx.lineTo(W-20, groundY); ctx.stroke();
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    for(let x=20;x<W-20;x+=14){ ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x-8, groundY+14); ctx.stroke(); }
+    const bx = Math.min(Math.max(boxX, 30), W-30-boxW);
+    ctx.fillStyle = css('--panel'); ctx.strokeStyle = css('--ink'); ctx.lineWidth = 2;
+    ctx.fillRect(bx, groundY-boxH, boxW, boxH);
+    ctx.strokeRect(bx, groundY-boxH, boxW, boxH);
+    ctx.fillStyle = css('--ink'); ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('m', bx+boxW/2, groundY-boxH/2+5);
+    const cy = groundY - boxH/2;
+    if(fVec>0){
+      drawArrow(bx+boxW, cy, bx+boxW+fVec, cy, css('--accent'));
+      ctx.fillStyle = css('--accent'); ctx.textAlign='left';
+      ctx.fillText('F', bx+boxW+fVec+6, cy+4);
+    }
+    if(ffVec>0){
+      drawArrow(bx, cy+16, bx-ffVec, cy+16, css('--accent2'));
+      ctx.fillStyle = css('--accent2'); ctx.textAlign='right';
+      ctx.fillText('f', bx-ffVec-6, cy+16+4);
+    }
+  }
+
+  // ---- incline scene ----
+  const MAX_SLOPE_LEN = 420, TOP_MARGIN = 90, RIGHT_MARGIN = 40;
+  function baseXY(){ return { x:60, y: canvas.height-40 }; }
+  function currentSlopeLen(thetaRad){
+    const W = canvas.width, H = canvas.height, b = baseXY();
+    const bySin = thetaRad>0.001 ? (b.y-TOP_MARGIN)/Math.sin(thetaRad) : Infinity;
+    const byCos = thetaRad<1.5 ? (W-b.x-RIGHT_MARGIN)/Math.cos(thetaRad) : Infinity;
+    return Math.max(120, Math.min(MAX_SLOPE_LEN, bySin, byCos));
+  }
+  function incTopPoint(thetaRad){
+    const b = baseXY(), L = currentSlopeLen(thetaRad);
+    return { x: b.x + L*Math.cos(thetaRad), y: b.y - L*Math.sin(thetaRad) };
+  }
+  function drawIncl(thetaRad, mg, mgSinAbs, mgCosAbs, nAbs, fApplied){
+    const W = canvas.width, H = canvas.height, b = baseXY(), baseX = b.x, baseY = b.y;
+    ctx.clearRect(0,0,W,H);
+    const top = incTopPoint(thetaRad);
+
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(20, baseY); ctx.lineTo(W-20, baseY); ctx.stroke();
+
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(top.x, top.y); ctx.stroke();
+    ctx.fillStyle = css('--grid');
+    ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(top.x, top.y); ctx.lineTo(top.x, baseY); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = css('--line');
+    ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.lineTo(top.x, baseY); ctx.stroke();
+
+    ctx.strokeStyle = css('--ink');
+    ctx.beginPath(); ctx.arc(baseX, baseY, 34, -thetaRad, 0); ctx.stroke();
+    ctx.fillStyle = css('--ink'); ctx.font = '13px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('θ', baseX+40, baseY-10);
+
+    const dirX = -Math.cos(thetaRad), dirY = Math.sin(thetaRad);
+    const startX = top.x - 10*Math.cos(thetaRad), startY = top.y + 10*Math.sin(thetaRad);
+    const bx = startX + dirX*pos, by = startY + dirY*pos;
+
+    const boxSize = 40;
+    ctx.save();
+    ctx.translate(bx, by); ctx.rotate(-thetaRad);
+    ctx.fillStyle = css('--panel'); ctx.strokeStyle = css('--ink'); ctx.lineWidth = 2;
+    ctx.fillRect(-boxSize/2, -boxSize, boxSize, boxSize);
+    ctx.strokeRect(-boxSize/2, -boxSize, boxSize, boxSize);
+    ctx.fillStyle = css('--ink'); ctx.font = '13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('m', 0, -boxSize/2+5);
+    ctx.restore();
+
+    const uPar = { x: dirX, y: dirY };
+    const into = { x: Math.sin(thetaRad), y: Math.cos(thetaRad) };
+    const nOut = { x: -into.x, y: -into.y };
+    const comX = bx - (boxSize/2)*Math.sin(thetaRad);
+    const comY = by - (boxSize/2)*Math.cos(thetaRad);
+
+    if(mg>0){
+      const scale = Math.min(3.2, 95/mg);
+      const mgLen = mg*scale, parLen = mgSinAbs*scale, perpLen = mgCosAbs*scale;
+      const nLen = Math.min(nAbs*scale, 95), fLen = Math.min(fApplied*scale, 95);
+      const tipMg   = { x: comX, y: comY + mgLen };
+      const tipPar  = { x: comX + uPar.x*parLen, y: comY + uPar.y*parLen };
+      const tipPerp = { x: comX + into.x*perpLen, y: comY + into.y*perpLen };
+
+      ctx.setLineDash([4,4]); ctx.strokeStyle = css('--ink'); ctx.globalAlpha = 0.4; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tipPar.x, tipPar.y); ctx.lineTo(tipMg.x, tipMg.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tipPerp.x, tipPerp.y); ctx.lineTo(tipMg.x, tipMg.y); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.setLineDash([]);
+
+      ctx.setLineDash([5,3]); ctx.strokeStyle = css('--ink'); ctx.globalAlpha = 0.55; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(comX, comY); ctx.lineTo(tipMg.x, tipMg.y); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.setLineDash([]);
+      labelBox('mg', tipMg.x+6, tipMg.y, 'left', css('--ink'));
+
+      drawArrow(comX, comY, tipPar.x, tipPar.y, css('--accent2'));
+      labelBox('mg sinθ', tipPar.x + (uPar.x>=0?6:-6), tipPar.y, uPar.x>=0 ? 'left':'right', css('--accent2'));
+
+      drawArrow(comX, comY, tipPerp.x, tipPerp.y, css('--accent3'));
+      labelBox('mg cosθ', tipPerp.x+6, tipPerp.y+4, 'left', css('--accent3'));
+
+      if(nLen>0){
+        const tipN = { x: comX + nOut.x*nLen, y: comY + nOut.y*nLen };
+        ctx.lineWidth = 3;
+        drawArrow(comX, comY, tipN.x, tipN.y, css('--accent4'));
+        ctx.lineWidth = 2.5;
+        labelBox('N', tipN.x + uPar.x*26, tipN.y + uPar.y*26, 'center', css('--accent4'));
+      }
+
+      if(fLen>0){
+        const tipF = { x: comX - uPar.x*fLen, y: comY - uPar.y*fLen };
+        drawArrow(comX, comY, tipF.x, tipF.y, css('--accent'));
+        labelBox('f', tipF.x, tipF.y-10, 'center', css('--accent'));
+      }
+    }
+  }
+
+  // ---------- physics ----------
   function compute(){
-    const m = parseFloat(inputs.m.value);
-    const F = parseFloat(inputs.F.value);
-    const muS = parseFloat(inputs.muS.value);
-    const muK = parseFloat(inputs.muK.value);
-    const g = parseFloat(inputs.g.value);
-    const N = m*g;
-    const fsMax = muS*N;
-    const fk = muK*N;
-    let moving, netF, a, fApplied;
-    if(F <= fsMax){
-      moving = false;
-      fApplied = F; // static friction matches F exactly, object stays still
-      netF = 0;
-      a = 0;
+    if(mode === 'flat'){
+      const m = parseFloat(inputs.f_m.value), F = parseFloat(inputs.f_F.value);
+      const muS = parseFloat(inputs.f_muS.value), muK = parseFloat(inputs.f_muK.value), g = parseFloat(inputs.f_g.value);
+      const N = m*g, fsMax = muS*N, fk = muK*N;
+      let moving, netF, a, fApplied;
+      if(F <= fsMax){ moving=false; fApplied=F; netF=0; a=0; }
+      else { moving=true; fApplied=fk; netF=F-fk; a=netF/m; }
+      return {mode,m,F,muS,muK,g,N,fsMax,fk,moving,netF,a,fApplied};
     } else {
-      moving = true;
-      fApplied = fk;
-      netF = F - fk;
-      a = netF/m;
+      const m = parseFloat(inputs.i_m.value), thetaDeg = parseFloat(inputs.i_th.value);
+      const muS = parseFloat(inputs.i_muS.value), muK = parseFloat(inputs.i_muK.value), g = parseFloat(inputs.i_g.value);
+      const thetaRad = thetaDeg*Math.PI/180;
+      const N = m*g*Math.cos(thetaRad), mgsin = m*g*Math.sin(thetaRad);
+      const fsMax = muS*N, fk = muK*N;
+      let moving, netF, a, fApplied;
+      if(mgsin <= fsMax){ moving=false; fApplied=mgsin; netF=0; a=0; }
+      else { moving=true; fApplied=fk; netF=mgsin-fk; a=netF/m; }
+      return {mode,m,thetaDeg,thetaRad,muS,muK,g,N,mgsin,fsMax,fk,moving,netF,a,fApplied};
     }
-    return {m,F,muS,muK,g,N,fsMax,fk,moving,netF,a,fApplied};
   }
 
-  function render(res, animScale){
-    document.getElementById('fsMax').textContent = res.fsMax.toFixed(2)+' N';
-    document.getElementById('fk').textContent = res.fk.toFixed(2)+' N';
-    document.getElementById('netF').textContent = (res.moving? res.netF.toFixed(2) : '0.00')+' N';
-    document.getElementById('acc').textContent = res.a.toFixed(2);
-    const accBox = document.getElementById('accBox');
-    accBox.className = 'stat ' + (res.moving ? 'on':'off');
-    const verdict = document.getElementById('verdict');
-    if(res.moving){
-      verdict.className = 'verdict';
-      verdict.innerHTML = `F (${res.F.toFixed(1)} N) มากกว่าแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>เคลื่อนที่</b> ด้วยความเร่ง a = (F − f_k)/m = (${res.F.toFixed(1)} − ${res.fk.toFixed(2)})/${res.m.toFixed(1)} = <b>${res.a.toFixed(2)} m/s²</b>`;
+  function render(res){
+    if(res.mode === 'flat'){
+      document.getElementById('f_fsMax').textContent = res.fsMax.toFixed(2)+' N';
+      document.getElementById('f_fk').textContent = res.fk.toFixed(2)+' N';
+      document.getElementById('f_netF').textContent = (res.moving? res.netF.toFixed(2) : '0.00')+' N';
+      document.getElementById('f_acc').textContent = res.a.toFixed(2);
+      document.getElementById('f_accBox').className = 'stat ' + (res.moving ? 'on':'off');
+      const v = document.getElementById('verdict');
+      if(res.moving){
+        v.className = 'verdict';
+        v.innerHTML = `F (${res.F.toFixed(1)} N) มากกว่าแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>เคลื่อนที่</b> ด้วยความเร่ง a = (F − f_k)/m = (${res.F.toFixed(1)} − ${res.fk.toFixed(2)})/${res.m.toFixed(1)} = <b>${res.a.toFixed(2)} m/s²</b>`;
+      } else {
+        v.className = 'verdict still';
+        v.innerHTML = `F (${res.F.toFixed(1)} N) ไม่เกินแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>ยังคงอยู่นิ่ง</b> (a = 0)`;
+      }
+      const fScale = Math.min(res.F*2.2, 220), ffScale = Math.min(res.fApplied*2.2, 220);
+      drawFlat(fScale, ffScale);
     } else {
-      verdict.className = 'verdict still';
-      verdict.innerHTML = `F (${res.F.toFixed(1)} N) ไม่เกินแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>ยังคงอยู่นิ่ง</b> (a = 0)`;
+      document.getElementById('i_mgsin').textContent = res.mgsin.toFixed(2)+' N';
+      document.getElementById('i_fsMax').textContent = res.fsMax.toFixed(2)+' N';
+      document.getElementById('i_fk').textContent = res.fk.toFixed(2)+' N';
+      document.getElementById('i_Nval').textContent = res.N.toFixed(2)+' N';
+      document.getElementById('i_netF').textContent = (res.moving? res.netF.toFixed(2) : '0.00')+' N';
+      document.getElementById('i_acc').textContent = res.a.toFixed(2);
+      document.getElementById('i_accBox').className = 'stat ' + (res.moving ? 'on':'off');
+      const v = document.getElementById('verdict');
+      if(res.moving){
+        v.className = 'verdict';
+        v.innerHTML = `mg sinθ (${res.mgsin.toFixed(2)} N) มากกว่าแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>ไถลลง</b> ด้วยความเร่ง a = (mg sinθ − f_k)/m = (${res.mgsin.toFixed(2)} − ${res.fk.toFixed(2)})/${res.m.toFixed(1)} = <b>${res.a.toFixed(2)} m/s²</b>`;
+      } else {
+        v.className = 'verdict still';
+        v.innerHTML = `mg sinθ (${res.mgsin.toFixed(2)} N) ไม่เกินแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>อยู่นิ่งบนพื้นเอียง</b> (a = 0)`;
+      }
+      drawIncl(res.thetaRad, res.m*res.g, res.mgsin, res.N, res.N, res.fApplied);
     }
-    const fScale = Math.min(res.F*2.2, 220);
-    const ffScale = Math.min(res.fApplied*2.2, 220);
-    drawScene(fScale*(animScale===undefined?1:animScale), ffScale, res.moving);
   }
 
+  // ---------- animation ----------
   let animId = null;
   function stopAnim(){ if(animId){ cancelAnimationFrame(animId); animId=null; } }
+  function maxTravel(res){
+    if(res.mode === 'flat') return canvas.width - 30 - 60 - 60;
+    return currentSlopeLen(res.thetaRad) - 20;
+  }
 
   function runSim(){
     stopAnim();
-    boxX = 60;
+    pos = 0;
     const res = compute();
-    if(!res.moving){
-      render(res);
-      addLogRow(res);
-      return;
-    }
-    let t = 0;
-    const dt = 1/60;
-    let v = 0;
+    if(!res.moving){ render(res); addLogRow(res); return; }
+    let t = 0, v = 0; const dt = 1/60, limit = maxTravel(res);
     function step(){
-      t += dt;
-      v += res.a*dt;
-      boxX += v*dt*40; // scaled for visual travel
+      t += dt; v += res.a*dt; pos += v*dt*40;
       render(res);
-      if(boxX < W-30-60 && t < 4){
-        animId = requestAnimationFrame(step);
-      } else {
-        addLogRow(res);
-      }
+      if(pos < limit && t < 5){ animId = requestAnimationFrame(step); }
+      else { addLogRow(res); }
     }
     step();
   }
 
-  function resetPos(){
+  function resetPos(){ stopAnim(); pos = 0; render(compute()); }
+
+  // ---------- mode switching ----------
+  function setMode(next){
+    if(next === mode) return;
     stopAnim();
-    boxX = 60;
+    mode = next;
+    const isFlat = mode === 'flat';
+    document.getElementById('modeFlat').setAttribute('aria-pressed', isFlat);
+    document.getElementById('modeIncl').setAttribute('aria-pressed', !isFlat);
+    document.getElementById('flatInputs').classList.toggle('hidden', !isFlat);
+    document.getElementById('inclInputs').classList.toggle('hidden', isFlat);
+    document.getElementById('readoutFlat').classList.toggle('hidden', !isFlat);
+    document.getElementById('readoutIncl').classList.toggle('hidden', isFlat);
+    document.getElementById('legend').classList.toggle('hidden', isFlat);
+    canvas.height = isFlat ? 220 : 320;
+    document.getElementById('colVar').textContent = isFlat ? 'F (N)' : 'θ (°)';
+    pos = 0;
     render(compute());
   }
 
+  // ---------- log ----------
   let rowCount = 0;
   function addLogRow(res){
     rowCount++;
     document.getElementById('emptyMsg').style.display = 'none';
+    const varCell = res.mode === 'flat' ? res.F.toFixed(1) : res.thetaDeg.toFixed(0);
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${rowCount}</td><td>${res.m.toFixed(1)}</td><td>${res.F.toFixed(1)}</td>
+    tr.innerHTML = `<td>${rowCount}</td><td>${res.mode==='flat'?'พื้นราบ':'พื้นเอียง'}</td><td>${res.m.toFixed(1)}</td><td>${varCell}</td>
       <td>${res.muS.toFixed(2)}</td><td>${res.muK.toFixed(2)}</td><td>${res.g.toFixed(1)}</td>
       <td>${res.moving?'เคลื่อนที่':'นิ่ง'}</td><td>${res.a.toFixed(2)}</td>`;
     document.getElementById('logBody').appendChild(tr);
   }
 
+  // ---------- wire up ----------
+  document.getElementById('modeFlat').addEventListener('click', ()=>setMode('flat'));
+  document.getElementById('modeIncl').addEventListener('click', ()=>setMode('incl'));
   document.getElementById('runBtn').addEventListener('click', runSim);
   document.getElementById('resetBtn').addEventListener('click', resetPos);
   document.getElementById('clearBtn').addEventListener('click', ()=>{
