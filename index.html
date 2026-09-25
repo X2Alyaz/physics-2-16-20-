@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>การจำลอง แรงเสียดทาน พื้นราบ</title>
+<style>
+  :root{
+    --paper:#f3efe4;
+    --ink:#1e2a24;
+    --line:#c9c0aa;
+    --accent:#2e6b4f;
+    --accent2:#b5502e;
+    --panel:#fffdf7;
+    --grid:#e2d9c4;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --panel:#232722; --grid:#2a2f29;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1b1f1c; --ink:#eae4d3; --line:#3a3f38; --accent:#6fbf94; --accent2:#e08a63; --panel:#232722; --grid:#2a2f29;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
+  body{
+    font-family: "TH Sarabun New","Sarabun",system-ui,-apple-system,sans-serif;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:24px 24px;
+    min-height:100%;
+    padding:20px 16px 40px;
+  }
+  .wrap{max-width:780px;margin:0 auto;}
+  h1{
+    font-size:1.5rem;
+    font-weight:700;
+    margin:4px 0 2px;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:10px;
+  }
+  .sub{color:var(--ink);opacity:.65;font-size:.95rem;margin-bottom:18px;}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px 18px;
+    margin-bottom:16px;
+  }
+  .panel h2{font-size:1.05rem;margin:0 0 12px;font-weight:700;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;}
+  @media (max-width:520px){.grid{grid-template-columns:1fr;}}
+  label{display:block;font-size:.88rem;margin-bottom:4px;opacity:.85;}
+  .row{display:flex;align-items:center;gap:10px;}
+  input[type=range]{flex:1;accent-color:var(--accent);}
+  input[type=number]{
+    width:72px;background:var(--paper);border:1px solid var(--line);
+    border-radius:3px;padding:4px 6px;color:var(--ink);font-size:.9rem;
+  }
+
+  canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:var(--panel);}
+
+  .readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  @media (max-width:520px){.readout{grid-template-columns:1fr 1fr;}}
+  .stat{border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--paper);}
+  .stat .k{font-size:.78rem;opacity:.65;}
+  .stat .v{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums;}
+  .stat.on{border-color:var(--accent);}
+  .stat.off{border-color:var(--accent2);}
+
+  .verdict{
+    margin-top:12px;padding:10px 12px;border-radius:4px;font-size:.92rem;
+    border-left:4px solid var(--accent);background:var(--paper);
+  }
+  .verdict.still{border-left-color:var(--accent2);}
+
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  button{
+    font-family:inherit;font-size:.92rem;font-weight:600;
+    padding:9px 16px;border-radius:4px;border:1px solid var(--ink);
+    background:var(--ink);color:var(--paper);cursor:pointer;
+  }
+  button.secondary{background:transparent;color:var(--ink);}
+  button:active{transform:translateY(1px);}
+
+  table{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:10px;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:center;}
+  th{background:var(--paper);font-weight:700;}
+  td.note{text-align:left;opacity:.75;}
+  .tblwrap{overflow-x:auto;}
+  .empty{opacity:.55;font-size:.88rem;padding:8px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>การจำลอง: แรงเสียดทาน บนพื้นราบ</h1>
+  <div class="sub">ปรับค่าตัวแปร กดวิ่งจำลอง แล้วบันทึกค่าความเร่งที่ได้ลงตาราง</div>
+
+  <div class="panel">
+    <h2>ค่าตัวแปร</h2>
+    <div class="grid">
+      <div>
+        <label>มวล m (kg): <span id="mVal">2.0</span></label>
+        <div class="row"><input type="range" id="m" min="0.5" max="10" step="0.1" value="2"></div>
+      </div>
+      <div>
+        <label>แรงภายนอก F (N): <span id="FVal">10.0</span></label>
+        <div class="row"><input type="range" id="F" min="0" max="50" step="0.5" value="10"></div>
+      </div>
+      <div>
+        <label>สปส. ความเสียดทานสถิต μs: <span id="muSVal">0.40</span></label>
+        <div class="row"><input type="range" id="muS" min="0" max="1" step="0.01" value="0.4"></div>
+      </div>
+      <div>
+        <label>สปส. ความเสียดทานจลน์ μk: <span id="muKVal">0.20</span></label>
+        <div class="row"><input type="range" id="muK" min="0" max="1" step="0.01" value="0.2"></div>
+      </div>
+      <div>
+        <label>g (m/s²): <span id="gVal">10.0</span></label>
+        <div class="row"><input type="range" id="g" min="1" max="20" step="0.1" value="10"></div>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="runBtn">▶ วิ่งจำลอง</button>
+      <button class="secondary" id="resetBtn">รีเซ็ตตำแหน่ง</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>ภาพจำลอง</h2>
+    <canvas id="scene" width="720" height="220"></canvas>
+
+    <div class="readout">
+      <div class="stat"><div class="k">แรงเสียดทานสูงสุด (สถิต) f_s,max</div><div class="v" id="fsMax">—</div></div>
+      <div class="stat"><div class="k">แรงเสียดทานจลน์ f_k</div><div class="v" id="fk">—</div></div>
+      <div class="stat"><div class="k">แรงลัพธ์ ΣF</div><div class="v" id="netF">—</div></div>
+      <div class="stat" id="accBox"><div class="k">ความเร่ง a (m/s²)</div><div class="v" id="acc">—</div></div>
+    </div>
+
+    <div class="verdict" id="verdict">ปรับค่าแล้วกด "วิ่งจำลอง" เพื่อดูผล</div>
+  </div>
+
+  <div class="panel">
+    <h2>บันทึกผลการทดลอง</h2>
+    <div class="tblwrap">
+      <table id="log">
+        <thead>
+          <tr><th>#</th><th>m (kg)</th><th>F (N)</th><th>μs</th><th>μk</th><th>g</th><th>สถานะ</th><th>a (m/s²)</th></tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyMsg">ยังไม่มีข้อมูลที่บันทึก — กด "วิ่งจำลอง" แล้วผลจะถูกเพิ่มลงตารางอัตโนมัติ</div>
+    <div class="btns">
+      <button class="secondary" id="clearBtn">ล้างตาราง</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ids = ['m','F','muS','muK','g'];
+  const valSpans = {m:'mVal',F:'FVal',muS:'muSVal',muK:'muKVal',g:'gVal'};
+  const decimals = {m:1,F:1,muS:2,muK:2,g:1};
+  const inputs = {};
+  ids.forEach(id=>{
+    inputs[id] = document.getElementById(id);
+    inputs[id].addEventListener('input', updateLabels);
+  });
+
+  function updateLabels(){
+    ids.forEach(id=>{
+      document.getElementById(valSpans[id]).textContent = parseFloat(inputs[id].value).toFixed(decimals[id]);
+    });
+  }
+  updateLabels();
+
+  const canvas = document.getElementById('scene');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const groundY = H - 50;
+  let boxX = 60;
+  const boxW = 60, boxH = 44;
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function drawScene(fVec, ffVec, moving){
+    ctx.clearRect(0,0,W,H);
+    // ground
+    ctx.strokeStyle = css('--ink');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, groundY);
+    ctx.lineTo(W-20, groundY);
+    ctx.stroke();
+    // hatching
+    ctx.strokeStyle = css('--line');
+    ctx.lineWidth = 1;
+    for(let x=20;x<W-20;x+=14){
+      ctx.beginPath();
+      ctx.moveTo(x, groundY);
+      ctx.lineTo(x-8, groundY+14);
+      ctx.stroke();
+    }
+    // box
+    const bx = Math.min(Math.max(boxX, 30), W-30-boxW);
+    ctx.fillStyle = css('--panel');
+    ctx.strokeStyle = css('--ink');
+    ctx.lineWidth = 2;
+    ctx.fillRect(bx, groundY-boxH, boxW, boxH);
+    ctx.strokeRect(bx, groundY-boxH, boxW, boxH);
+    ctx.fillStyle = css('--ink');
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('m', bx+boxW/2, groundY-boxH/2+5);
+
+    const cy = groundY - boxH/2;
+    // F arrow (accent, pointing right)
+    if(fVec>0){
+      drawArrow(bx+boxW, cy, bx+boxW+fVec, cy, css('--accent'));
+      ctx.fillStyle = css('--accent');
+      ctx.textAlign='left';
+      ctx.fillText('F', bx+boxW+fVec+6, cy+4);
+    }
+    // friction arrow (accent2, pointing left, opposing)
+    if(ffVec>0){
+      drawArrow(bx, cy+16, bx-ffVec, cy+16, css('--accent2'));
+      ctx.fillStyle = css('--accent2');
+      ctx.textAlign='right';
+      ctx.fillText('f', bx-ffVec-6, cy+16+4);
+    }
+  }
+
+  function drawArrow(x1,y1,x2,y2,color){
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+    const angle = Math.atan2(y2-y1, x2-x1);
+    ctx.beginPath();
+    ctx.moveTo(x2,y2);
+    ctx.lineTo(x2 - 8*Math.cos(angle-0.4), y2 - 8*Math.sin(angle-0.4));
+    ctx.lineTo(x2 - 8*Math.cos(angle+0.4), y2 - 8*Math.sin(angle+0.4));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function compute(){
+    const m = parseFloat(inputs.m.value);
+    const F = parseFloat(inputs.F.value);
+    const muS = parseFloat(inputs.muS.value);
+    const muK = parseFloat(inputs.muK.value);
+    const g = parseFloat(inputs.g.value);
+    const N = m*g;
+    const fsMax = muS*N;
+    const fk = muK*N;
+    let moving, netF, a, fApplied;
+    if(F <= fsMax){
+      moving = false;
+      fApplied = F; // static friction matches F exactly, object stays still
+      netF = 0;
+      a = 0;
+    } else {
+      moving = true;
+      fApplied = fk;
+      netF = F - fk;
+      a = netF/m;
+    }
+    return {m,F,muS,muK,g,N,fsMax,fk,moving,netF,a,fApplied};
+  }
+
+  function render(res, animScale){
+    document.getElementById('fsMax').textContent = res.fsMax.toFixed(2)+' N';
+    document.getElementById('fk').textContent = res.fk.toFixed(2)+' N';
+    document.getElementById('netF').textContent = (res.moving? res.netF.toFixed(2) : '0.00')+' N';
+    document.getElementById('acc').textContent = res.a.toFixed(2);
+    const accBox = document.getElementById('accBox');
+    accBox.className = 'stat ' + (res.moving ? 'on':'off');
+    const verdict = document.getElementById('verdict');
+    if(res.moving){
+      verdict.className = 'verdict';
+      verdict.innerHTML = `F (${res.F.toFixed(1)} N) มากกว่าแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>เคลื่อนที่</b> ด้วยความเร่ง a = (F − f_k)/m = (${res.F.toFixed(1)} − ${res.fk.toFixed(2)})/${res.m.toFixed(1)} = <b>${res.a.toFixed(2)} m/s²</b>`;
+    } else {
+      verdict.className = 'verdict still';
+      verdict.innerHTML = `F (${res.F.toFixed(1)} N) ไม่เกินแรงเสียดทานสถิตสูงสุด (${res.fsMax.toFixed(2)} N) &rarr; วัตถุ<b>ยังคงอยู่นิ่ง</b> (a = 0)`;
+    }
+    const fScale = Math.min(res.F*2.2, 220);
+    const ffScale = Math.min(res.fApplied*2.2, 220);
+    drawScene(fScale*(animScale===undefined?1:animScale), ffScale, res.moving);
+  }
+
+  let animId = null;
+  function stopAnim(){ if(animId){ cancelAnimationFrame(animId); animId=null; } }
+
+  function runSim(){
+    stopAnim();
+    boxX = 60;
+    const res = compute();
+    if(!res.moving){
+      render(res);
+      addLogRow(res);
+      return;
+    }
+    let t = 0;
+    const dt = 1/60;
+    let v = 0;
+    function step(){
+      t += dt;
+      v += res.a*dt;
+      boxX += v*dt*40; // scaled for visual travel
+      render(res);
+      if(boxX < W-30-60 && t < 4){
+        animId = requestAnimationFrame(step);
+      } else {
+        addLogRow(res);
+      }
+    }
+    step();
+  }
+
+  function resetPos(){
+    stopAnim();
+    boxX = 60;
+    render(compute());
+  }
+
+  let rowCount = 0;
+  function addLogRow(res){
+    rowCount++;
+    document.getElementById('emptyMsg').style.display = 'none';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${rowCount}</td><td>${res.m.toFixed(1)}</td><td>${res.F.toFixed(1)}</td>
+      <td>${res.muS.toFixed(2)}</td><td>${res.muK.toFixed(2)}</td><td>${res.g.toFixed(1)}</td>
+      <td>${res.moving?'เคลื่อนที่':'นิ่ง'}</td><td>${res.a.toFixed(2)}</td>`;
+    document.getElementById('logBody').appendChild(tr);
+  }
+
+  document.getElementById('runBtn').addEventListener('click', runSim);
+  document.getElementById('resetBtn').addEventListener('click', resetPos);
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    document.getElementById('logBody').innerHTML = '';
+    rowCount = 0;
+    document.getElementById('emptyMsg').style.display = 'block';
+  });
+
+  render(compute());
+})();
+</script>
+</body>
+</html>
